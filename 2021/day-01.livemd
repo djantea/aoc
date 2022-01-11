@@ -1,0 +1,43 @@
+# AoC - Day 1
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_integer/1)
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.reduce({_prev = :infinity, _count = 0}, fn depth, {prev, count} ->
+  {depth, if(prev < depth, do: count + 1, else: count)}
+end)
+|> elem(1)
+```
+
+## Part 2
+
+```elixir
+input
+|> Enum.chunk_every(3, 1, :discard)
+|> Enum.reduce({_prev = :infinity, _count = 0}, fn chunk, {prev, count} ->
+  sum = Enum.sum(chunk)
+  {sum, if(prev < sum, do: count + 1, else: count)}
+end)
+|> elem(1)
+```
