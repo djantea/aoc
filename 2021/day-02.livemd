@@ -1,0 +1,54 @@
+# AoC - Day 2
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn
+    "forward " <> forward -> {:forward, String.to_integer(forward)}
+    "down " <> down -> {:down, String.to_integer(down)}
+    "up " <> up -> {:up, String.to_integer(up)}
+  end)
+
+nil
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.reduce({0, 0}, fn
+  {:forward, forward}, {pos, depth} -> {pos + forward, depth}
+  {:down, down}, {pos, depth} -> {pos, depth + down}
+  {:up, up}, {pos, depth} -> {pos, depth - up}
+end)
+|> Tuple.to_list()
+|> Enum.product()
+```
+
+## Part 2
+
+```elixir
+{aim, pos, depth} =
+  input
+  |> Enum.reduce({0, 0, 0}, fn
+    {:forward, x}, {aim, pos, depth} -> {aim, pos + x, depth + aim * x}
+    {:down, x}, {aim, pos, depth} -> {aim + x, pos, depth}
+    {:up, x}, {aim, pos, depth} -> {aim - x, pos, depth}
+  end)
+
+pos * depth
+```

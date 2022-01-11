@@ -1,0 +1,103 @@
+# AoC - Day 3
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn number ->
+    number |> String.to_charlist() |> Enum.map(&(&1 - ?0)) |> List.to_tuple()
+  end)
+```
+
+## Part 1
+
+```elixir
+# num_digits = input |> hd() |> length()
+# gamma = [0] |> Stream.cycle() |> Enum.take(num_digits) |> List.to_tuple()
+numbers_count = length(input)
+
+gamma_rate =
+  input
+  |> Enum.reduce(fn digits, acc ->
+    Enum.zip_with(Tuple.to_list(digits), Tuple.to_list(acc), &(&1 + &2))
+    |> List.to_tuple()
+  end)
+  |> Tuple.to_list()
+  |> Enum.map(fn digits_sum ->
+    cond do
+      digits_sum >= div(numbers_count, 2) -> 1
+      true -> 0
+    end
+  end)
+
+epsilon_rate =
+  gamma_rate
+  |> Enum.map(&rem(&1 + 1, 2))
+
+Integer.undigits(gamma_rate, 2) * Integer.undigits(epsilon_rate, 2)
+```
+
+## Part 2
+
+```elixir
+defmodule Diagnostics do
+  def rating(input, generator_fun) do
+    digits_count = input |> hd() |> tuple_size()
+
+    for pos <- 0..(digits_count - 1) do
+      pos
+    end
+    |> Enum.reduce_while(input, fn pos, numbers ->
+      digits_sum =
+        numbers
+        |> Enum.reduce(0, fn digits, acc ->
+          acc + elem(digits, pos)
+        end)
+
+      most_common_digit =
+        cond do
+          generator_fun.(digits_sum, length(numbers)) -> 1
+          true -> 0
+        end
+
+      numbers =
+        numbers
+        |> Enum.filter(fn digits ->
+          elem(digits, pos) == most_common_digit
+        end)
+
+      case length(numbers) do
+        1 -> {:halt, numbers}
+        _ -> {:cont, numbers}
+      end
+    end)
+  end
+end
+```
+
+```elixir
+[oxygen] =
+  Diagnostics.rating(input, fn digits_sum, numbers_count ->
+    digits_sum >= div(numbers_count + 1, 2)
+  end)
+
+[co2] =
+  Diagnostics.rating(input, fn digits_sum, numbers_count ->
+    digits_sum < div(numbers_count + 1, 2)
+  end)
+
+Integer.undigits(Tuple.to_list(oxygen), 2) * Integer.undigits(Tuple.to_list(co2), 2)
+```

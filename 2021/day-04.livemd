@@ -1,0 +1,128 @@
+# AoC - Day 4
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input")
+```
+
+```elixir
+[numbers | boards] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+
+numbers =
+  numbers
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+
+boards =
+  boards
+  |> Enum.map(fn row ->
+    row
+    |> String.split()
+    |> Enum.map(&String.to_integer/1)
+  end)
+  |> Enum.chunk_every(5)
+```
+
+```elixir
+defmodule Board do
+  @enforce_keys [:numbers]
+  defstruct numbers: %{}, marked: %{}
+
+  def new(board_list) when is_list(board_list) do
+    numbers =
+      for {row, i} <- Enum.with_index(board_list),
+          {number, j} <- Enum.with_index(row),
+          into: %{} do
+        {number, {i, j}}
+      end
+
+    %Board{numbers: numbers}
+  end
+
+  def mark(%Board{numbers: numbers} = board, number) do
+    case numbers do
+      %{^number => ij} -> put_in(board, [Access.key(:marked), Access.key(ij)], true)
+      _ -> board
+    end
+  end
+
+  def won?(%Board{} = board) do
+    won_row?(board) or won_column?(board)
+  end
+
+  defp won_row?(%Board{marked: marked}) do
+    Enum.any?(0..4, fn i ->
+      Enum.all?(0..4, fn j -> marked[{i, j}] end)
+    end)
+  end
+
+  defp won_column?(%Board{marked: marked}) do
+    Enum.any?(0..4, fn j ->
+      Enum.all?(0..4, fn i -> marked[{i, j}] end)
+    end)
+  end
+
+  def unmarked_sum(%Board{numbers: numbers, marked: marked}) do
+    for {number, pos} <- numbers, !marked[pos], reduce: 0 do
+      acc -> acc + number
+    end
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+boards =
+  boards
+  |> Enum.map(&Board.new/1)
+```
+
+## Part 1
+
+```elixir
+{won_number, won_board} =
+  numbers
+  |> Enum.reduce_while(boards, fn number, boards ->
+    boards = Enum.map(boards, &Board.mark(&1, number))
+
+    case Enum.find(boards, &Board.won?/1) do
+      nil -> {:cont, boards}
+      board -> {:halt, {number, board}}
+    end
+  end)
+
+won_number * Board.unmarked_sum(won_board)
+```
+
+## Part 2
+
+```elixir
+{last_won_number, last_won_board} =
+  numbers
+  |> Enum.reduce_while(boards, fn number, boards ->
+    boards = Enum.map(boards, &Board.mark(&1, number))
+    remaining_boards = Enum.reject(boards, &Board.won?/1)
+
+    case remaining_boards do
+      [] ->
+        [last_board] = boards
+        {:halt, {number, last_board}}
+
+      _ ->
+        {:cont, remaining_boards}
+    end
+  end)
+
+last_won_number * Board.unmarked_sum(last_won_board)
+```
