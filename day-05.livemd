@@ -1,0 +1,78 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 5
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split(["\n", " -> "], trim: true)
+  |> Enum.chunk_every(2)
+  |> Enum.map(fn pair ->
+    Enum.map(pair, fn coord ->
+      coord
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+    end)
+  end)
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Enum.reduce(%{}, fn
+  [[x, y1], [x, y2]], acc ->
+    for y <- y1..y2, reduce: acc do
+      acc -> Map.update(acc, {x, y}, 1, &(&1 + 1))
+    end
+
+  [[x1, y], [x2, y]], acc ->
+    for x <- x1..x2, reduce: acc do
+      acc -> Map.update(acc, {x, y}, 1, &(&1 + 1))
+    end
+
+  _, acc ->
+    acc
+end)
+|> Enum.count(fn {_k, v} -> v >= 2 end)
+```
+
+## Part 2
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Enum.reduce(%{}, fn
+  [[x, y1], [x, y2]], acc ->
+    for y <- y1..y2, reduce: acc do
+      acc -> Map.update(acc, {x, y}, 1, &(&1 + 1))
+    end
+
+  [[x1, y], [x2, y]], acc ->
+    for x <- x1..x2, reduce: acc do
+      acc -> Map.update(acc, {x, y}, 1, &(&1 + 1))
+    end
+
+  [[x1, y1], [x2, y2]], acc ->
+    for {x, y} <- Enum.zip(x1..x2, y1..y2), reduce: acc do
+      acc -> Map.update(acc, {x, y}, 1, &(&1 + 1))
+    end
+end)
+|> Enum.count(fn {_k, v} -> v >= 2 end)
+```
