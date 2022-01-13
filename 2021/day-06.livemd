@@ -1,0 +1,71 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 6
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.frequencies()
+```
+
+```elixir
+defmodule Lanternfish do
+  def count_after(input, days) do
+    Enum.reduce(1..days, input, fn _step, freqs ->
+      Enum.reduce(0..8, {freqs, freqs}, fn timer, {freqs, new_freqs} ->
+        cond do
+          timer > 0 ->
+            count = Map.get(freqs, timer, 0)
+
+            new_freqs =
+              new_freqs
+              |> Map.update(timer, 0, &(&1 - count))
+              |> Map.update(timer - 1, count, &(&1 + count))
+
+            {freqs, new_freqs}
+
+          timer == 0 ->
+            count = Map.get(freqs, timer, 0)
+
+            new_freqs =
+              new_freqs
+              |> Map.update(8, count, &(&1 + count))
+              |> Map.update(6, count, &(&1 + count))
+              |> Map.update(0, 0, &(&1 - count))
+
+            {freqs, new_freqs}
+        end
+      end)
+      |> elem(1)
+    end)
+    |> Enum.reduce(0, fn {_k, v}, acc -> v + acc end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+Lanternfish.count_after(input, 80)
+```
+
+## Part 2
+
+```elixir
+Lanternfish.count_after(input, 256)
+```
