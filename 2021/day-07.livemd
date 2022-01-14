@@ -1,0 +1,64 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 7
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split(",")
+  |> Enum.map(&String.to_integer/1)
+```
+
+```elixir
+defmodule Stat do
+  def median(list) do
+    list = Enum.sort(list)
+    size = length(list)
+
+    case rem(size, 2) do
+      1 -> Enum.at(list, div(size - 1, 2))
+      0 -> Enum.slice(list, div(size - 1, 2), 2) |> Enum.sum() |> div(2)
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+median = Stat.median(input)
+Enum.reduce(input, 0, fn n, acc -> acc + abs(median - n) end)
+```
+
+## Part 2
+
+```elixir
+{min = 0, max} = Enum.min_max(input)
+
+base = Enum.scan(0..(max - min), &(&1 + &2))
+
+fuels_list =
+  input
+  |> Enum.map(fn n ->
+    fuels_right = Enum.take(base, max - n + 1)
+    fuels_left = Enum.slice(base, 1, n) |> Enum.reverse()
+    fuels_left ++ fuels_right
+  end)
+
+Enum.zip(fuels_list)
+|> Enum.map(fn zipped -> Tuple.to_list(zipped) |> Enum.sum() end)
+|> Enum.min()
+```
