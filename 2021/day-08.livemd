@@ -1,0 +1,113 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn row ->
+    String.split(row, " | ")
+    |> Enum.map(&String.split(&1, " "))
+  end)
+```
+
+## Part 1
+
+```elixir
+input
+|> Enum.reduce(0, fn [_signals, output], acc ->
+  acc + Enum.count(output, fn digit -> String.length(digit) in [2, 3, 4, 7] end)
+end)
+```
+
+## Part 2
+
+```elixir
+sort_fn = fn s -> s |> String.to_charlist() |> Enum.sort() end
+
+input =
+  input
+  |> Enum.map(fn [signals, output] ->
+    [Enum.map(signals, &sort_fn.(&1)), Enum.map(output, &sort_fn.(&1))]
+  end)
+```
+
+```elixir
+Enum.map(input, fn [signals, output] ->
+  digits =
+    signals
+    |> Enum.reduce(%{}, fn digit, acc ->
+      case length(digit) do
+        2 -> Map.put(acc, 1, digit)
+        3 -> Map.put(acc, 7, digit)
+        4 -> Map.put(acc, 4, digit)
+        7 -> Map.put(acc, 8, digit)
+        5 -> Map.update(acc, :any_235, [digit], fn list -> [digit | list] end)
+        6 -> Map.update(acc, :any_069, [digit], fn list -> [digit | list] end)
+      end
+    end)
+
+  [three] = Enum.filter(digits[:any_235], fn digit -> digits[1] -- digit == [] end)
+
+  digits =
+    digits
+    |> Map.put(3, three)
+    |> Map.update!(:any_235, &(&1 -- [three]))
+
+  [six] = Enum.filter(digits[:any_069], fn digit -> digits[1] -- digit != [] end)
+
+  digits =
+    digits
+    |> Map.put(6, six)
+    |> Map.update!(:any_069, &(&1 -- [six]))
+
+  [five] = Enum.filter(digits[:any_235], fn digit -> match?([_], digits[4] -- digit) end)
+
+  digits =
+    digits
+    |> Map.put(5, five)
+    |> Map.update!(:any_235, &(&1 -- [five]))
+
+  [two] = digits[:any_235]
+
+  digits =
+    digits
+    |> Map.put(2, two)
+    |> Map.delete(:any_235)
+
+  [nine] = Enum.filter(digits[:any_069], fn digit -> digits[3] -- digit == [] end)
+
+  digits =
+    digits
+    |> Map.put(9, nine)
+    |> Map.update!(:any_069, &(&1 -- [nine]))
+
+  [zero] = digits[:any_069]
+
+  digits =
+    digits
+    |> Map.put(0, zero)
+    |> Map.delete(:any_069)
+
+  digits = Map.new(digits, fn {k, v} -> {v, k} end)
+
+  output
+  |> Enum.map(fn digit -> digits[digit] end)
+  |> Integer.undigits()
+end)
+|> Enum.sum()
+```
