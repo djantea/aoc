@@ -1,0 +1,81 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.0"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.with_index()
+  |> Enum.reduce(%{}, fn {row, i}, acc ->
+    row
+    |> String.to_charlist()
+    |> Enum.with_index(fn h, j -> {{i, j}, h - ?0} end)
+    |> Map.new()
+    |> Map.merge(acc)
+  end)
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+{sum, lows} =
+  input
+  |> Enum.reduce({0, []}, fn {{i, j}, h}, {sum, lows} = acc ->
+    low? =
+      h < input[{i, j - 1}] and
+        h < input[{i, j + 1}] and
+        h < input[{i - 1, j}] and
+        h < input[{i + 1, j}]
+
+    if low?, do: {sum + h + 1, [{i, j} | lows]}, else: acc
+  end)
+```
+
+## Part 2
+
+```elixir
+defmodule Basins do
+  def basin(grid, point) do
+    basin([], grid, point)
+  end
+
+  def basin(visited, grid, {x, y} = point) do
+    if point in visited || grid[point] in [9, nil] do
+      visited
+    else
+      visited
+      |> then(fn visited -> [{x, y} | visited] end)
+      |> basin(grid, {x, y - 1})
+      |> basin(grid, {x, y + 1})
+      |> basin(grid, {x - 1, y})
+      |> basin(grid, {x + 1, y})
+    end
+  end
+end
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lows
+|> Enum.map(fn low -> input |> Basins.basin(low) |> length() end)
+|> Enum.sort(:desc)
+|> Enum.take(3)
+|> Enum.product()
+```
