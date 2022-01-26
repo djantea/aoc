@@ -1,5 +1,3 @@
-<!-- vim: syntax=markdown -->
-
 # AoC - Day 10
 
 ## Setup
@@ -19,35 +17,28 @@ input =
   input
   |> Kino.Input.read()
   |> String.split("\n", trim: true)
-  |> Enum.map(&String.to_charlist/1)
-```
 
-## Part 1
+:ok
+```
 
 ```elixir
 defmodule Syntax do
-  def check(list) do
-    check(list, [])
-  end
+  def check(line), do: check(line, [])
 
-  def check([?( | rest], stack), do: check(rest, [?) | stack])
-  def check([?[ | rest], stack), do: check(rest, [?] | stack])
-  def check([?{ | rest], stack), do: check(rest, [?} | stack])
-  def check([?< | rest], stack), do: check(rest, [?> | stack])
+  def check(<<?(, rest::binary>>, stack), do: check(rest, [?) | stack])
+  def check(<<?[, rest::binary>>, stack), do: check(rest, [?] | stack])
+  def check(<<?{, rest::binary>>, stack), do: check(rest, [?} | stack])
+  def check(<<?<, rest::binary>>, stack), do: check(rest, [?> | stack])
 
-  def check([char | rest_list], [char | rest_stack]) do
-    check(rest_list, rest_stack)
-  end
+  def check(<<char, rest::binary>>, [char | rest_stack]), do: check(rest, rest_stack)
 
-  def check([char | _], [_ | _]), do: {:corrupt, char}
-
-  def check([], []), do: :ok
-
-  def check([], stack), do: {:incomplete, stack}
-
-  def check([char | _], []), do: {:corrupt, char}
+  def check(<<>>, []), do: :ok
+  def check(<<>>, stack), do: {:incomplete, stack}
+  def check(<<char, _rest::binary>>, _stack), do: {:corrupt, char}
 end
 ```
+
+## Part 1
 
 ```elixir
 points = %{
@@ -57,13 +48,11 @@ points = %{
   ?> => 25137
 }
 
-input
-|> Enum.reduce(0, fn line, acc ->
-  case Syntax.check(line) do
-    {:corrupt, char} -> acc + points[char]
-    _ -> acc
-  end
-end)
+for line <- input,
+    {:corrupt, char} <- [Syntax.check(line)],
+    reduce: 0 do
+  acc -> acc + points[char]
+end
 ```
 
 ## Part 2
@@ -76,23 +65,15 @@ points = %{
   ?> => 4
 }
 
-sorted_scores =
-  input
-  |> Enum.reduce([], fn line, scores ->
-    case Syntax.check(line) do
-      {:incomplete, completion} ->
-        score =
-          Enum.reduce(completion, 0, fn char, acc ->
-            acc * 5 + points[char]
-          end)
-
-        [score | scores]
-
-      _ ->
-        scores
+scores =
+  Enum.sort(
+    for line <- input,
+        {:incomplete, completion} <- [Syntax.check(line)] do
+      Enum.reduce(completion, 0, fn char, acc ->
+        acc * 5 + points[char]
+      end)
     end
-  end)
-  |> Enum.sort()
+  )
 
-Enum.at(sorted_scores, sorted_scores |> length() |> div(2))
+Enum.at(scores, scores |> length() |> div(2))
 ```
