@@ -1,0 +1,98 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 10
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+input =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_charlist/1)
+```
+
+## Part 1
+
+```elixir
+defmodule Syntax do
+  def check(list) do
+    check(list, [])
+  end
+
+  def check([?( | rest], stack), do: check(rest, [?) | stack])
+  def check([?[ | rest], stack), do: check(rest, [?] | stack])
+  def check([?{ | rest], stack), do: check(rest, [?} | stack])
+  def check([?< | rest], stack), do: check(rest, [?> | stack])
+
+  def check([char | rest_list], [char | rest_stack]) do
+    check(rest_list, rest_stack)
+  end
+
+  def check([char | _], [_ | _]), do: {:corrupt, char}
+
+  def check([], []), do: :ok
+
+  def check([], stack), do: {:incomplete, stack}
+
+  def check([char | _], []), do: {:corrupt, char}
+end
+```
+
+```elixir
+points = %{
+  ?) => 3,
+  ?] => 57,
+  ?} => 1197,
+  ?> => 25137
+}
+
+input
+|> Enum.reduce(0, fn line, acc ->
+  case Syntax.check(line) do
+    {:corrupt, char} -> acc + points[char]
+    _ -> acc
+  end
+end)
+```
+
+## Part 2
+
+```elixir
+points = %{
+  ?) => 1,
+  ?] => 2,
+  ?} => 3,
+  ?> => 4
+}
+
+sorted_scores =
+  input
+  |> Enum.reduce([], fn line, scores ->
+    case Syntax.check(line) do
+      {:incomplete, completion} ->
+        score =
+          Enum.reduce(completion, 0, fn char, acc ->
+            acc * 5 + points[char]
+          end)
+
+        [score | scores]
+
+      _ ->
+        scores
+    end
+  end)
+  |> Enum.sort()
+
+Enum.at(sorted_scores, sorted_scores |> length() |> div(2))
+```
