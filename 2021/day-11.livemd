@@ -1,0 +1,124 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+grid =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.map(&String.to_charlist/1)
+  |> Enum.with_index()
+  |> Enum.reduce(%{}, fn {row, i}, acc ->
+    row
+    |> Enum.with_index()
+    |> Enum.reduce(acc, fn {level, j}, acc ->
+      Map.put(acc, {i, j}, level - ?0)
+    end)
+  end)
+
+:ok
+```
+
+## Part 1
+
+```elixir
+defmodule Octopus do
+  def print(grid) do
+    IO.puts("----------")
+
+    for i <- 0..9 do
+      line =
+        for j <- 0..9, into: "" do
+          grid[{i, j}] |> to_string()
+        end
+
+      IO.puts("#{line}")
+    end
+
+    IO.puts("----------")
+
+    grid
+  end
+
+  def step(grid) do
+    for x <- 0..9, y <- 0..9, reduce: {grid, []} do
+      {grid, flashed} -> inc_level(grid, {x, y}, flashed)
+    end
+  end
+
+  defp inc_level(grid, {x, y}, flashed) do
+    if {x, y} in flashed do
+      {grid, flashed}
+    else
+      next_level = grid[{x, y}] + 1
+
+      if next_level > 9 do
+        flash(%{grid | {x, y} => 0}, {x, y}, [{x, y} | flashed])
+      else
+        {%{grid | {x, y} => next_level}, flashed}
+      end
+    end
+  end
+
+  defp flash(grid, {x, y}, flashed) do
+    [
+      {x - 1, y - 1},
+      {x, y - 1},
+      {x + 1, y - 1},
+      {x + 1, y},
+      {x + 1, y + 1},
+      {x, y + 1},
+      {x - 1, y + 1},
+      {x - 1, y}
+    ]
+    |> Enum.filter(fn {x, y} -> x in 0..9 and y in 0..9 end)
+    |> Enum.reduce({grid, flashed}, fn {x, y}, {grid, flashed} ->
+      inc_level(grid, {x, y}, flashed)
+    end)
+  end
+end
+```
+
+```elixir
+{grid_after_100, flashed_count} =
+  for _step <- 1..100, reduce: {grid, 0} do
+    {grid, flashed_count} ->
+      {grid, flashed} = Octopus.step(grid)
+      {grid, flashed_count + length(flashed)}
+  end
+
+Octopus.print(grid_after_100)
+flashed_count
+```
+
+## Part 2
+
+```elixir
+{grid_after_all_flashed, step} =
+  Stream.iterate(1, &(&1 + 1))
+  |> Enum.reduce_while(grid, fn step, grid ->
+    {grid, flashed} = Octopus.step(grid)
+
+    if length(flashed) == 100 do
+      {:halt, {grid, step}}
+    else
+      {:cont, grid}
+    end
+  end)
+
+Octopus.print(grid_after_all_flashed)
+step
+```
