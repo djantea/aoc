@@ -1,0 +1,123 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 12
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.1"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+map =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n", trim: true)
+  |> Enum.reduce(%{}, fn link, acc ->
+    case String.split(link, "-") do
+      ["start", to] ->
+        Map.update(acc, "start", [to], &[to | &1])
+
+      [from, "end"] ->
+        Map.update(acc, from, ["end"], &["end" | &1])
+
+      [from, to] ->
+        acc |> Map.update(from, [to], &[to | &1]) |> Map.update(to, [from], &[from | &1])
+    end
+  end)
+```
+
+## Part 1
+
+```elixir
+defmodule Graph do
+  def paths(map) do
+    get_paths(map, ["start"], [], [])
+  end
+
+  defp get_paths(_map, ["end" | _caves] = path, _seen_caves, paths) do
+    [path | paths]
+  end
+
+  defp get_paths(map, [cave | _caves] = path, seen_caves, paths) do
+    Enum.reduce(map[cave], [], fn next_cave, acc ->
+      cond do
+        cave in seen_caves ->
+          acc
+
+        small_cave?(cave) ->
+          acc ++
+            get_paths(
+              map,
+              [next_cave | path],
+              [cave | seen_caves],
+              paths
+            )
+
+        true ->
+          acc ++
+            get_paths(
+              map,
+              [next_cave | path],
+              seen_caves,
+              paths
+            )
+      end
+    end)
+  end
+
+  def small_cave?(<<first, _rest::binary>>) when first in ?a..?z, do: true
+  def small_cave?(_), do: false
+end
+```
+
+```elixir
+Graph.paths(map)
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+defmodule Graph2 do
+  def paths(map) do
+    get_paths(map, ["start"], [], nil, [])
+  end
+
+  defp get_paths(_map, ["end" | _caves] = path, _seen_caves, _seen2_cave, paths) do
+    [path | paths]
+  end
+
+  defp get_paths(map, [cave | _caves] = path, seen_caves, seen2_cave, paths) do
+    Enum.reduce(map[cave], [], fn next_cave, acc ->
+      cond do
+        cave in seen_caves and (cave == "start" or not is_nil(seen2_cave)) ->
+          acc
+
+        cave in seen_caves and is_nil(seen2_cave) ->
+          acc ++ get_paths(map, [next_cave | path], [cave | seen_caves], cave, paths)
+
+        small_cave?(cave) ->
+          acc ++ get_paths(map, [next_cave | path], [cave | seen_caves], seen2_cave, paths)
+
+        true ->
+          acc ++ get_paths(map, [next_cave | path], seen_caves, seen2_cave, paths)
+      end
+    end)
+  end
+
+  def small_cave?(<<first, _rest::binary>>) when first in ?a..?z, do: true
+  def small_cave?(_), do: false
+end
+```
+
+```elixir
+Graph2.paths(map)
+|> Enum.count()
+```
