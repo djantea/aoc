@@ -1,0 +1,82 @@
+<!-- vim: syntax=markdown -->
+
+# AoC - Day 13
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.5.2"}
+])
+```
+
+```elixir
+input = Kino.Input.textarea("Input:")
+```
+
+```elixir
+[dots, instructions] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n", trim: true)
+
+dots =
+  dots
+  |> String.split(["\n", ","])
+  |> Enum.map(&String.to_integer/1)
+  |> Enum.chunk_every(2)
+  |> MapSet.new()
+
+instructions =
+  instructions
+  |> String.split("\n", trim: true)
+  |> Enum.map(fn
+    "fold along x=" <> x -> {:x, String.to_integer(x)}
+    "fold along y=" <> y -> {:y, String.to_integer(y)}
+  end)
+
+:ok
+```
+
+## Part 1
+
+```elixir
+folder = fn
+  {:x, fold}, [x, y], acc when x < fold -> MapSet.put(acc, [x, y])
+  {:x, fold}, [fold, _], acc -> acc
+  {:x, fold}, [x, y], acc when x > fold -> MapSet.put(acc, [2 * fold - x, y])
+  {:y, fold}, [x, y], acc when y < fold -> MapSet.put(acc, [x, y])
+  {:y, fold}, [_, fold], acc -> acc
+  {:y, fold}, [x, y], acc when y > fold -> MapSet.put(acc, [x, 2 * fold - y])
+end
+```
+
+```elixir
+[instruction | _] = instructions
+
+dots
+|> Enum.reduce(MapSet.new(), &folder.(instruction, &1, &2))
+|> Enum.count()
+```
+
+## Part 2
+
+```elixir
+folded =
+  Enum.reduce(instructions, MapSet.new(dots), fn instruction, dots ->
+    Enum.reduce(dots, MapSet.new(), &folder.(instruction, &1, &2))
+  end)
+
+[max_x, _] = Enum.max_by(folded, fn [x, _] -> x end)
+[_, max_y] = Enum.max_by(folded, fn [_, y] -> y end)
+
+for y <- 0..max_y do
+  IO.puts(
+    for x <- 0..max_x, into: "" do
+      if [x, y] in folded, do: " #", else: "  "
+    end
+  )
+end
+
+:ok
+```
